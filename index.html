@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="记录我们一起走过的日子、想去的地方和每一个值得记住的瞬间。" />
+<meta name="theme-color" content="#ec826f" />
+<title>momo & 你 · 我们的恋爱日志</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark">♥</div><div><strong>momo & 你</strong><small>我们的恋爱日志</small></div></div>
+  <nav class="nav" aria-label="主导航">
+    <button class="active" data-section="home"><span class="nav-ico">⌂</span>故事首页</button>
+    <button data-section="timeline"><span class="nav-ico">◷</span>恋爱时间线</button>
+    <button data-section="gallery"><span class="nav-ico">▣</span>照片回忆</button>
+    <button data-section="wishes"><span class="nav-ico">♡</span>我们的愿望</button>
+  </nav>
+  <div class="side-foot"><b>给未来的我们</b>每一次记录，都是时间<br/>留给我们的温柔证据。</div>
+</aside>
+<main class="main">
+  <div class="topbar"><div class="crumb">首页 <span>/</span> <strong id="crumbTitle">故事首页</strong></div><div class="top-actions"><button class="icon-btn" id="notifyBtn" aria-label="提示">♧</button><div class="avatar" title="我们"></div></div></div>
+
+  <section class="section visible" id="home">
+    <section class="hero"><div class="eyebrow">OUR LITTLE UNIVERSE · 2024—2026</div><h1>嗨，<em>小笨蛋</em>。<br/>今天也在好好相爱。</h1><p>把平凡日子收集起来，等我们一起慢慢翻阅。</p><div class="stats"><div class="stat"><strong id="daysCount">648</strong><span>相爱天数</span></div><div class="stat"><strong id="memoryCount">26</strong><span>共同回忆</span></div><div class="stat"><strong>08</strong><span>去过的城市</span></div></div><div class="hero-heart">♡</div></section>
+    <div class="grid"><section><div class="section-head"><div><div class="section-title">最近发生的事</div><div class="section-sub">每个值得记住的瞬间</div></div><button class="write-btn js-open-log">＋ 写一篇日志</button></div><div class="timeline" id="homeTimeline"></div></section><aside class="right-col"><div class="card countdown"><div class="card-head"><span class="card-title">下一个纪念日</span><span style="font-size:18px">✦</span></div><small>距离我们的纪念日还有</small><b><span id="countdownDays">47</span> <small style="display:inline;font-size:13px;color:#c66255">天</small></b><div class="date" id="anniversaryDate">2026年 06月 06日 · 在一起两周年</div></div><div class="card"><div class="card-head"><span class="card-title">今日回忆</span><button class="more" data-section-jump="gallery">查看全部 →</button></div><div class="memory-img"></div><p class="memory-caption">“原来幸福真的会有声音”</p><span class="memory-date">2025年 08月 19日 · 杭州</span></div><div class="card mood-card"><div class="card-head"><span class="card-title">今天的心情</span><span style="font-size:12px;color:var(--muted)">10月 25日</span></div><div class="mood-row"><button class="mood">🌤️</button><button class="mood active">🥰</button><button class="mood">🌿</button><button class="mood">✨</button></div></div></aside></div>
+  </section>
+
+  <section class="section" id="timeline"><div class="section-head"><div><div class="section-title">恋爱时间线</div><div class="section-sub">从第一次见面，到每一个今天</div></div><button class="write-btn js-open-log">＋ 写一篇日志</button></div><div class="timeline" id="timelineList"></div></section>
+
+  <section class="section" id="gallery"><div class="section-head"><div><div class="section-title">照片回忆</div><div class="section-sub">把想念变成看得见的画面</div></div><label class="write-btn" for="photoInput">＋ 添加照片</label><input id="photoInput" type="file" accept="image/*" hidden /></div><div class="gallery-grid" id="galleryGrid"><div class="gallery-item"><div class="gallery-meta"><strong>春天的第一束花</strong><small>2026 · 02 · 14</small></div></div><div class="gallery-item"><div class="gallery-meta"><strong>海风、落日和你</strong><small>2026 · 01 · 28</small></div></div><div class="gallery-item"><div class="gallery-meta"><strong>一起去看日落</strong><small>2025 · 09 · 06</small></div></div><div class="gallery-item"><div class="gallery-meta"><strong>冬天的第一顿火锅</strong><small>2025 · 12 · 06</small></div></div><div class="gallery-item"><div class="gallery-meta"><strong>周末的咖啡时间</strong><small>2025 · 11 · 22</small></div></div><div class="gallery-item"><div class="gallery-meta"><strong>杭州散步地图</strong><small>2025 · 08 · 19</small></div></div><label class="gallery-add" for="photoInput"><span><b>＋</b>上传一张新回忆</span></label></div></section>
+
+  <section class="section" id="wishes"><div class="section-head"><div><div class="section-title">我们的愿望</div><div class="section-sub">一起去完成的小小清单</div></div><button class="write-btn" id="addWishBtn">＋ 添加愿望</button></div><div class="wish-grid" id="wishGrid"></div></section>
+
+  <section class="section" id="about"><div class="about-card"><h2>给未来的我们</h2><p>我们把日子过成一页一页的小故事。这里记录约会、旅行、临时起意的散步，也记录那些没有被拍下来的普通时刻。希望很多年以后，再打开它时，还是会因为同一个人心动。</p><div class="about-list"><div><b>开始于</b>2024年 06月 06日</div><div><b>最常说的话</b>“你吃饭了吗？”</div><div><b>共同去过</b>杭州、厦门、苏州</div><div><b>正在期待</b>下一次一起看海</div></div></div></section>
+</main></div>
+
+<div class="modal-wrap" id="logModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal"><div class="modal-head"><h2 id="modalTitle">写下今天的小事</h2><button class="close js-close-modal" aria-label="关闭">×</button></div><div class="field"><label for="logTitle">标题</label><input id="logTitle" placeholder="比如：一起去吃了那家拉面" /></div><div class="field"><label for="logDate">日期</label><input id="logDate" type="date" /></div><div class="field"><label for="logText">想说的话</label><textarea id="logText" placeholder="记下当时的心情吧…"></textarea></div><div class="save-row"><button class="cancel js-close-modal">先不写了</button><button class="save" id="saveLog">保存这份回忆</button></div></div></div>
+<div class="modal-wrap" id="wishModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-head"><h2>添加一个愿望</h2><button class="close js-close-wish" aria-label="关闭">×</button></div><div class="field"><label for="wishTitle">想一起做什么</label><input id="wishTitle" placeholder="比如：在海边看一次日出" /></div><div class="field"><label for="wishNote">备注（可选）</label><textarea id="wishNote" placeholder="想在什么时候完成？"></textarea></div><div class="save-row"><button class="cancel js-close-wish">先不写了</button><button class="save" id="saveWish">加入清单</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body></html>
+

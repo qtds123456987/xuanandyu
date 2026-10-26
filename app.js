@@ -17,7 +17,7 @@ const defaults = {
   memoryTitle: '今日回忆', memoryCaption: '下一次心动，就从今天开始记录。', memoryDate: '', memoryPhotoId: '',
   moodTitle: '今天的心情', moodNote: '也想知道，今天的你过得怎么样。',
   aboutTitle: '写给未来的我们', aboutText: '愿我们一直记得此刻的温柔。\n一起走过四季，也一起认真生活。',
-  aboutList: '我们的约定｜有话好好说\n下一站｜一起决定', loveStart: '2024-06-06', anniversaryMonthDay: '06-06'
+  aboutList: '我们的约定｜有话好好说\n下一站｜一起决定', loveStart: '2026-08-20', anniversaryMonthDay: '06-06'
 };
 const labels = {
   brandIcon:'侧栏图标',brandName:'网站名称',brandSubtitle:'名称下方文字',navHome:'首页导航名称',navTimeline:'时间线导航名称',navGallery:'照片导航名称',navWishes:'愿望导航名称',navAbout:'关于页导航名称',
@@ -35,13 +35,15 @@ function normalize(raw = {}) {
   const date = value => validDate(value) ? value : today();
   const settings = { ...defaults };
   for (const name of Object.keys(defaults)) if (raw.settings && Object.hasOwn(raw.settings, name)) settings[name] = text(raw.settings[name]);
+  // Apply the requested start date to existing cloud content once; later edits remain editable.
+  if (raw.migrations?.loveStart20260820 !== true) settings.loveStart = defaults.loveStart;
   if (!validDate(settings.loveStart)) settings.loveStart = defaults.loveStart;
   if (!/^\d{2}-\d{2}$/.test(settings.anniversaryMonthDay) || !validDate('2024-' + settings.anniversaryMonthDay)) settings.anniversaryMonthDay = defaults.anniversaryMonthDay;
   const logs = list('logs').filter(x => x && !String(x.id).startsWith('default-')).map(x => ({ id:text(x.id || uid(),100), title:text(x.title,300), text:text(x.text), date:date(x.date), tags:Array.isArray(x.tags) ? x.tags.map(t => text(t,80)).slice(0,20) : [] }));
   const wishes = list('wishes').filter(Boolean).map(x => ({ id:text(x.id || uid(),100),title:text(x.title,300),note:text(x.note),done:!!x.done,progress:Math.min(100,Math.max(0,Number(x.progress)||0)) }));
   const photos = list('photos').filter(Boolean).map(x => ({ id:text(x.id || uid(),100),title:text(x.title,300),date:date(x.date),note:text(x.note),path:text(x.path,300), ...(typeof x.src === 'string' ? {src:x.src} : {}) }));
   for (const arr of [logs,wishes,photos]) { const ids = new Set(); for (const row of arr) { if (ids.has(row.id)) row.id = uid(); ids.add(row.id); } }
-  return { schema:1, settings, logs, wishes, photos, mood: raw.mood && typeof raw.mood === 'object' ? { date:text(raw.mood.date,10), emoji:['😊','🥰','😌','🥺'].includes(raw.mood.emoji) ? raw.mood.emoji : '', by:text(raw.mood.by,200) } : {} };
+  return { schema:1, migrations:{loveStart20260820:true}, settings, logs, wishes, photos, mood: raw.mood && typeof raw.mood === 'object' ? { date:text(raw.mood.date,10), emoji:['😊','🥰','😌','🥺'].includes(raw.mood.emoji) ? raw.mood.emoji : '', by:text(raw.mood.by,200) } : {} };
 }
 function validDate(v) { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false; const d = new Date(v+'T12:00:00Z'); return !isNaN(d) && d.toISOString().slice(0,10) === v; }
 function toast(text) { $('#toast').textContent=text; $('#toast').classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4500); }
@@ -129,7 +131,7 @@ function field(name,label,value='',type='text',extra='') {
   return `<div class="field"><label>${esc(label)}${input}</label></div>`;
 }
 function settingField(k) {
-  if(k==='memoryPhotoId') return `<div class="field"><label>${labels[k]}<select name="${k}"><option value="">使用插画</option>${state.photos.map(x=>`<option value="${esc(x.id)}" ${state.settings[k]===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label></div>`;
+  if(k==='memoryPhotoId') return `<div class="field"><label>${labels[k]}<select name="${k}"><option value="">使用插画</option><option value="__upload__">上传自己的照片…</option>${state.photos.map(x=>`<option value="${esc(x.id)}" ${state.settings[k]===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label></div><div class="field" id="memoryUploadField" hidden><label>选择自己的照片<input name="memoryFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled></label><p class="muted">支持 JPG、PNG、WebP、GIF，每张最多 8 MB。保存后也会加入照片回忆。</p></div>`;
   return field(k,labels[k],state.settings[k],k==='loveStart'?'date':['heroSubtitle','aboutText','aboutList','footerText','memoryCaption'].includes(k)?'textarea':'text',k==='loveStart'?'required':'maxlength="20000"');
 }
 function openEditor(kind,id=null) {
@@ -152,6 +154,11 @@ function openEditor(kind,id=null) {
   $('#editorFields').innerHTML=fields;$('#editorError').textContent='';$('#editor').showModal();
 }
 function closeEditor() {if(busy){toast('正在保存，请稍候。');return;} $('#editor').close();editContext=null;refresh();}
+$('#editorFields').addEventListener('change',event=>{
+  if(event.target.name!=='memoryPhotoId')return;
+  const upload=event.target.value==='__upload__',file=$('[name=memoryFile]');
+  $('#memoryUploadField').hidden=!upload;file.disabled=!upload;file.required=upload;
+});
 $('#editorForm').addEventListener('submit',async event=>{
   event.preventDefault();if(!editContext||busy) return;
   const ctx=editContext,next=clone(ctx.base),form=new FormData(event.target);
@@ -176,6 +183,21 @@ $('#editorForm').addEventListener('submit',async event=>{
       if(!validDate(next.settings.loveStart)) throw Error('请选择有效的恋爱开始日期。');
       if(!/^\d{2}-\d{2}$/.test(next.settings.anniversaryMonthDay)||!validDate('2024-'+next.settings.anniversaryMonthDay)) throw Error('纪念日请按 06-06 格式填写有效的月-日。');
       if(!next.settings.brandName) throw Error('网站名称不能为空。');
+      if(ctx.keys.includes('memoryPhotoId') && next.settings.memoryPhotoId==='__upload__') {
+        const file=$('[name=memoryFile]').files[0];
+        if(!file?.size) throw Error('请选择要上传的照片。');
+        // Reuse a confirmed upload when retrying a failed document save.
+        if(ctx.memoryUpload?.file!==file) ctx.memoryUpload=null;
+        if(!ctx.memoryUpload) {
+          busy=true;status('正在上传今日回忆照片…');
+          try {
+            const path=await Cloud.upload(file);
+            ctx.memoryUpload={file,photo:{id:uid(),title:next.settings.memoryCaption||file.name.replace(/\.[^.]+$/,''),date:today(),note:next.settings.memoryDate,path}};
+          } finally {busy=false;}
+        }
+        next.photos.push(ctx.memoryUpload.photo);
+        next.settings.memoryPhotoId=ctx.memoryUpload.photo.id;
+      }
     }
     await commit(next,ctx.version);$('#editor').close();editContext=null;toast('已保存，双方都可以看到。');
   } catch(e) {$('#editorError').textContent=e.message;}

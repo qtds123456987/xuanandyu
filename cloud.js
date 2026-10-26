@@ -81,6 +81,13 @@ window.Cloud = (() => {
     },
     async logout() { try { if (session) await api('/auth/v1/logout?scope=local', { method: 'POST' }); } finally { forget(); } },
     async password(password) { await api('/auth/v1/user', { method: 'PUT', body: { password } }); },
+    async role() {
+      try {
+        const rows=await api('/rest/v1/love_members?select=role');
+        if(rows?.length===1 && ['male','female'].includes(rows[0].role)) return rows[0].role;
+      } catch(error) {if(error.status!==400) throw error;}
+      throw Error('账号身份尚未配置，请在 Supabase SQL Editor 运行 upgrade-couple.sql，再重新登录。');
+    },
     async load() {
       const rows = await api('/rest/v1/love_documents?id=eq.shared&select=payload,version,updated_at');
       if (!rows?.length) throw Error('尚未获得双人访问权限，或数据库未初始化。请按部署指南运行 SQL 并添加两个用户 UUID。');

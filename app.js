@@ -17,16 +17,16 @@ const defaults = {
   memoryTitle: '今日回忆', memoryCaption: '下一次心动，就从今天开始记录。', memoryDate: '', memoryPhotoId: '',
   moodTitle: '今天的心情', moodNote: '也想知道，今天的你过得怎么样。',
   aboutTitle: '写给未来的我们', aboutText: '愿我们一直记得此刻的温柔。\n一起走过四季，也一起认真生活。',
-  aboutList: '我们的约定｜有话好好说\n下一站｜一起决定', loveStart: '2026-08-20', anniversaryMonthDay: '06-06'
+  aboutList: '我们的约定｜有话好好说\n下一站｜一起决定', loveStart: '2026-08-20', anniversaryMonthDay: '08-20'
 };
 const labels = {
   brandIcon:'侧栏图标',brandName:'网站名称',brandSubtitle:'名称下方文字',navHome:'首页导航名称',navTimeline:'时间线导航名称',navGallery:'照片导航名称',navWishes:'愿望导航名称',navAbout:'关于页导航名称',
   footerTitle:'侧栏底部标题',footerText:'侧栏底部文字',heroEyebrow:'首页英文小标题',heroTitle:'首页标题',heroSubtitle:'首页介绍',daysLabel:'恋爱天数说明',memoryLabel:'日志数量说明',cityCount:'一起去过的城市数量',cityLabel:'城市数量说明',
   recentTitle:'首页日志标题',recentSubtitle:'首页日志说明',timelineTitle:'时间线标题',timelineSubtitle:'时间线说明',galleryTitle:'照片页标题',gallerySubtitle:'照片页说明',wishesTitle:'愿望页标题',wishesSubtitle:'愿望页说明',
   anniversaryTitle:'纪念日卡片标题',countdownLabel:'倒计时说明',anniversaryNote:'纪念日备注',memoryTitle:'今日回忆标题',memoryCaption:'今日回忆文字',memoryDate:'今日回忆日期 / 备注',memoryPhotoId:'今日回忆照片',
-  moodTitle:'心情卡片标题',moodNote:'心情说明',aboutTitle:'关于页标题',aboutText:'给未来的我们（正文）',aboutList:'约定卡片（每行：标题｜内容）',loveStart:'恋爱开始日期',anniversaryMonthDay:'每年纪念日（月-日，例如 06-06）'
+  moodTitle:'心情卡片标题',moodNote:'心情说明',aboutTitle:'关于页标题',aboutText:'给未来的我们（正文）',aboutList:'约定卡片（每行：标题｜内容）',loveStart:'恋爱开始日期',anniversaryMonthDay:'每年纪念日（月-日，例如 08-20）'
 };
-let state = null, version = null, busy = false, loading = false, editContext = null, pollTimer = null, generation = 0;
+let state = null, version = null, busy = false, loading = false, editContext = null, pollTimer = null, generation = 0, currentRole = null;
 const search = { mode:'keyword', keyword:'', start:'', end:'' };
 function normalize(raw = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error('备份内容格式不正确。');
@@ -37,13 +37,14 @@ function normalize(raw = {}) {
   for (const name of Object.keys(defaults)) if (raw.settings && Object.hasOwn(raw.settings, name)) settings[name] = text(raw.settings[name]);
   // Apply the requested start date to existing cloud content once; later edits remain editable.
   if (raw.migrations?.loveStart20260820 !== true) settings.loveStart = defaults.loveStart;
+  if (raw.migrations?.anniversary0820 !== true) settings.anniversaryMonthDay = defaults.anniversaryMonthDay;
   if (!validDate(settings.loveStart)) settings.loveStart = defaults.loveStart;
   if (!/^\d{2}-\d{2}$/.test(settings.anniversaryMonthDay) || !validDate('2024-' + settings.anniversaryMonthDay)) settings.anniversaryMonthDay = defaults.anniversaryMonthDay;
-  const logs = list('logs').filter(x => x && !String(x.id).startsWith('default-')).map(x => ({ id:text(x.id || uid(),100), title:text(x.title,300), text:text(x.text), date:date(x.date), tags:Array.isArray(x.tags) ? x.tags.map(t => text(t,80)).slice(0,20) : [] }));
+  const logs = list('logs').filter(x => x && !String(x.id).startsWith('default-')).map(x => ({ id:text(x.id || uid(),100), title:text(x.title,300), maleText:text(x.maleText ?? x.text), femaleText:text(x.femaleText), date:date(x.date), tags:Array.isArray(x.tags) ? x.tags.map(t => text(t,80)).slice(0,20) : [] }));
   const wishes = list('wishes').filter(Boolean).map(x => ({ id:text(x.id || uid(),100),title:text(x.title,300),note:text(x.note),done:!!x.done,progress:Math.min(100,Math.max(0,Number(x.progress)||0)) }));
   const photos = list('photos').filter(Boolean).map(x => ({ id:text(x.id || uid(),100),title:text(x.title,300),date:date(x.date),note:text(x.note),path:text(x.path,300), ...(typeof x.src === 'string' ? {src:x.src} : {}) }));
   for (const arr of [logs,wishes,photos]) { const ids = new Set(); for (const row of arr) { if (ids.has(row.id)) row.id = uid(); ids.add(row.id); } }
-  return { schema:1, migrations:{loveStart20260820:true}, settings, logs, wishes, photos, mood: raw.mood && typeof raw.mood === 'object' ? { date:text(raw.mood.date,10), emoji:['😊','🥰','😌','🥺'].includes(raw.mood.emoji) ? raw.mood.emoji : '', by:text(raw.mood.by,200) } : {} };
+  return { schema:2, migrations:{loveStart20260820:true,anniversary0820:true}, settings, logs, wishes, photos, mood: raw.mood && typeof raw.mood === 'object' ? { date:text(raw.mood.date,10), emoji:['😊','🥰','😌','🥺'].includes(raw.mood.emoji) ? raw.mood.emoji : '', by:text(raw.mood.by,200) } : {} };
 }
 function validDate(v) { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false; const d = new Date(v+'T12:00:00Z'); return !isNaN(d) && d.toISOString().slice(0,10) === v; }
 function toast(text) { $('#toast').textContent=text; $('#toast').classList.add('show'); clearTimeout(window.toastTimer); window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4500); }
@@ -68,13 +69,13 @@ function syncDate() {
 }
 function filteredLogs() {
   let rows=[...state.logs];
-  if(search.mode==='keyword' && search.keyword.trim()) { const q=search.keyword.trim().toLocaleLowerCase(); rows=rows.filter(x=>[x.title,x.text,...x.tags].join(' ').toLocaleLowerCase().includes(q)); }
+  if(search.mode==='keyword' && search.keyword.trim()) { const q=search.keyword.trim().toLocaleLowerCase(); rows=rows.filter(x=>[x.title,x.maleText,x.femaleText,...x.tags].join(' ').toLocaleLowerCase().includes(q)); }
   if(search.mode==='date') rows=rows.filter(x=>(!search.start || x.date>=search.start)&&(!search.end || x.date<=search.end));
   return rows.sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
 }
 function renderLogs() {
   const rows=filteredLogs();
-  const html=rows.map(x=>`<article class="entry"><div class="entry-date"><b>${esc(x.date.slice(8))}</b>${esc(x.date.slice(0,7))}</div><div class="dot-col"><div class="dot"></div></div><div><div class="entry-tools"><button data-edit="log" data-id="${esc(x.id)}" aria-label="编辑日志">编辑</button><button data-delete="log" data-id="${esc(x.id)}" aria-label="删除日志">×</button></div><h3>${esc(x.title)}</h3><p class="preserve">${esc(x.text)}</p>${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></article>`).join('') || `<div class="empty-search"><strong>${state.logs.length?'没有找到相关记录':'故事，从这里开始'}</strong><span>${search.start && search.end && search.start>search.end?'开始日期不能晚于结束日期。':'写一篇日志，或试试其他关键词和时间范围。'}</span></div>`;
+  const html=rows.map(x=>`<article class="entry"><div class="entry-date"><b>${esc(x.date.slice(8))}</b>${esc(x.date.slice(0,7))}</div><div class="dot-col"><div class="dot"></div></div><div class="entry-content"><div class="entry-tools"><button data-edit="log" data-id="${esc(x.id)}" aria-label="编辑日志">编辑</button><button data-delete="log" data-id="${esc(x.id)}" aria-label="删除日志">×</button></div><h3>${esc(x.title)}</h3><div class="journal-pair">${['male','female'].map(role=>`<section class="journal-note ${role}"><span class="note-author">${role==='male'?'他的记录':'她的记录'}<span class="note-mark">${role===currentRole?'我的一栏':'对方的一栏'}</span></span><p class="preserve ${x[role+'Text']?'':'note-empty'}">${esc(x[role+'Text'] || '等一句想说的话…')}</p></section>`).join('')}</div>${x.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></article>`).join('') || `<div class="empty-search"><strong>${state.logs.length?'没有找到相关记录':'故事，从这里开始'}</strong><span>${search.start && search.end && search.start>search.end?'开始日期不能晚于结束日期。':'写一篇日志，或试试其他关键词和时间范围。'}</span></div>`;
   $('#homeTimeline').innerHTML=html; $('#timelineList').innerHTML=html;
   $('#memoryCount').textContent=state.logs.length;
   $$('.search-count').forEach(x=>x.textContent=`${rows.length} / ${state.logs.length} 条`);
@@ -134,6 +135,9 @@ function settingField(k) {
   if(k==='memoryPhotoId') return `<div class="field"><label>${labels[k]}<select name="${k}"><option value="">使用插画</option><option value="__upload__">上传自己的照片…</option>${state.photos.map(x=>`<option value="${esc(x.id)}" ${state.settings[k]===x.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label></div><div class="field" id="memoryUploadField" hidden><label>选择自己的照片<input name="memoryFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled></label><p class="muted">支持 JPG、PNG、WebP、GIF，每张最多 8 MB。保存后也会加入照片回忆。</p></div>`;
   return field(k,labels[k],state.settings[k],k==='loveStart'?'date':['heroSubtitle','aboutText','aboutList','footerText','memoryCaption'].includes(k)?'textarea':'text',k==='loveStart'?'required':'maxlength="20000"');
 }
+function journalFields(record) {
+  return `<div class="field-label">想记录的话</div><div class="journal-pair editor-pair">${['male','female'].map(role=>`<div class="journal-note ${role}"><label class="note-author">${role==='male'?'他的记录':'她的记录'}<span class="note-mark">${role===currentRole?'由我编辑':'仅对方可编辑'}</span><textarea name="${role}Text" maxlength="20000" ${role===currentRole?'':'readonly aria-readonly="true"'} placeholder="${role===currentRole?'写下今天想对彼此说的话…':'等对方写下心情…'}">${esc(record?.[role+'Text'] || '')}</textarea></label></div>`).join('')}</div>`;
+}
 function openEditor(kind,id=null) {
   if(!state || busy || loading) {toast('请稍候，正在连接云端。');return;}
   const collection={log:'logs',wish:'wishes',photo:'photos'}[kind];
@@ -142,7 +146,7 @@ function openEditor(kind,id=null) {
   let fields='',keys=[];
   if(collection) {
     fields=field('title',kind==='wish'?'愿望名称':'标题',record?.title||'','text','required maxlength="300"');
-    if(kind==='log') fields+=field('date','发生日期',record?.date||today(),'date','required')+field('text','想记录的话',record?.text||'','textarea','required maxlength="20000"')+field('tags','标签（用逗号分隔）',record?.tags?.join('，')||'');
+    if(kind==='log') fields+=field('date','发生日期',record?.date||today(),'date','required')+journalFields(record)+field('tags','标签（用逗号分隔）',record?.tags?.join('，')||'');
     if(kind==='wish') fields+=field('note','愿望备注',record?.note||'','textarea','maxlength="20000"')+field('progress','完成进度（0—100）',record?.progress||0,'number','min="0" max="100" required')+field('done','已经完成',record?.done,'checkbox');
     if(kind==='photo') fields+=field('date','拍摄日期',record?.date||today(),'date','required')+field('note','照片说明',record?.note||'','textarea','maxlength="20000"')+field('file',record?'替换照片（不选则保留）':'上传照片（每张最多 8 MB）','','file','accept="image/jpeg,image/png,image/webp,image/gif" '+(record?'':'required'));
   } else {
@@ -151,7 +155,7 @@ function openEditor(kind,id=null) {
   }
   editContext={kind,id,collection,version,base:clone(state),keys};
   $('#editorTitle').textContent=collection?(id?'编辑':'新增')+{log:'日志',wish:'愿望',photo:'照片'}[kind]:'编辑页面内容';
-  $('#editorFields').innerHTML=fields;$('#editorError').textContent='';$('#editor').showModal();
+  $('#editorFields').innerHTML=fields;$('#editor').classList.toggle('journal-editor',kind==='log');$('#editorError').textContent='';$('#editor').showModal();
 }
 function closeEditor() {if(busy){toast('正在保存，请稍候。');return;} $('#editor').close();editContext=null;refresh();}
 $('#editorFields').addEventListener('change',event=>{
@@ -170,7 +174,12 @@ $('#editorForm').addEventListener('submit',async event=>{
       const row={...(existing||{}),id:ctx.id||uid(),title:val('title')};
       if(!row.title) throw Error('请填写标题。');
       if(ctx.kind==='log'||ctx.kind==='photo') {row.date=val('date');if(!validDate(row.date)) throw Error('请选择有效日期。');}
-      if(ctx.kind==='log') {row.text=val('text');if(!row.text) throw Error('请写下日志内容。');row.tags=val('tags').split(/[,，]/).map(x=>x.trim()).filter(Boolean).slice(0,20);}
+      if(ctx.kind==='log') {
+        if(!['male','female'].includes(currentRole)) throw Error('账号身份未配置，请先运行双栏权限升级 SQL。');
+        row.maleText=existing?.maleText||'';row.femaleText=existing?.femaleText||'';
+        row[currentRole+'Text']=val(currentRole+'Text');
+        row.tags=val('tags').split(/[,，]/).map(x=>x.trim()).filter(Boolean).slice(0,20);
+      }
       if(ctx.kind==='wish') {row.note=val('note');row.progress=Math.min(100,Math.max(0,Number(val('progress'))||0));row.done=form.has('done');}
       if(ctx.kind==='photo') {
         row.note=val('note');const file=form.get('file');
@@ -181,7 +190,7 @@ $('#editorForm').addEventListener('submit',async event=>{
     } else {
       for(const key of ctx.keys) next.settings[key]=val(key);
       if(!validDate(next.settings.loveStart)) throw Error('请选择有效的恋爱开始日期。');
-      if(!/^\d{2}-\d{2}$/.test(next.settings.anniversaryMonthDay)||!validDate('2024-'+next.settings.anniversaryMonthDay)) throw Error('纪念日请按 06-06 格式填写有效的月-日。');
+      if(!/^\d{2}-\d{2}$/.test(next.settings.anniversaryMonthDay)||!validDate('2024-'+next.settings.anniversaryMonthDay)) throw Error('纪念日请按 08-20 格式填写有效的月-日。');
       if(!next.settings.brandName) throw Error('网站名称不能为空。');
       if(ctx.keys.includes('memoryPhotoId') && next.settings.memoryPhotoId==='__upload__') {
         const file=$('[name=memoryFile]').files[0];
@@ -225,7 +234,7 @@ $('#editPage').onclick=()=>openEditor('all');
 $('#accountButton').onclick=()=>{$('#accountEmail').textContent=Cloud.user?.email||'';$('#accountDialog').showModal();};
 $('#refreshButton').onclick=async()=>{try{await refresh(true);toast('已读取云端最新内容');}catch(e){toast(e.message);}};
 function authScreen(message='') {
-  generation++;clearInterval(pollTimer);pollTimer=null;state=null;version=null;
+  generation++;clearInterval(pollTimer);pollTimer=null;state=null;version=null;currentRole=null;
   $('#app').hidden=true;$('#authScreen').hidden=false;$('#authError').textContent=message;
   $$('#app .timeline, #galleryGrid, #wishGrid, #memoryImage').forEach(x=>x.replaceChildren());
   // Keep an unsaved editor visible after expiry so its text can be copied before logging in again.
@@ -233,7 +242,8 @@ function authScreen(message='') {
   $('#accountDialog').close();
 }
 async function start() {
-  const current=generation;const row=await Cloud.load();if(current!==generation)return;
+  const current=generation;const [row,role]=await Promise.all([Cloud.load(),Cloud.role()]);if(current!==generation)return;
+  currentRole=role;
   state=normalize(row.payload);version=row.version;
   $('#authScreen').hidden=true;$('#app').hidden=false;render();status('已连接云端');
   clearInterval(pollTimer);pollTimer=setInterval(refresh,Math.max(8000,Number(window.LOVE_CONFIG?.pollIntervalMs)||8000));
@@ -246,7 +256,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();
 $('#passwordButton').onclick=()=>{
   if(busy)return;$('#accountDialog').close();
   // Use a password field rather than a browser text prompt.
-  $('#editorTitle').textContent='修改我的密码';$('#editorFields').innerHTML=field('newPassword','新密码（至少 8 位）','','password','required minlength="8" autocomplete="new-password"');
+  $('#editor').classList.remove('journal-editor');$('#editorTitle').textContent='修改我的密码';$('#editorFields').innerHTML=field('newPassword','新密码（至少 8 位）','','password','required minlength="8" autocomplete="new-password"');
   $('#editorError').textContent='';editContext=null;$('#editor').showModal();
 };
 $('#editorForm').addEventListener('submit',async e=>{
@@ -271,7 +281,7 @@ async function importData(raw) {
   if(busy||loading||!state)throw Error('请等待同步完成。');
   const payload=raw?.format==='love-log-backup-v1'?raw.payload:raw;
   const source=normalize(Array.isArray(payload)?{logs:payload}:payload);
-  if(!confirm(`准备合并导入 ${source.logs.length} 条日志、${source.wishes.length} 个愿望、${source.photos.length} 张照片。相同 ID 的记录保留云端版本。${payload?.settings?'页面文案将使用备份中的版本。':''}是否继续？`))return;
+  if(!confirm(`准备合并导入 ${source.logs.length} 条日志、${source.wishes.length} 个愿望、${source.photos.length} 张照片。只导入本人一栏，对方正文由对方登录后导入同一备份补齐；已有正文保留。${payload?.settings?'页面文案将使用备份中的版本。':''}是否继续？`))return;
   const next=clone(state),expected=version;busy=true;
   try {
     for(const photo of source.photos){
@@ -282,7 +292,13 @@ async function importData(raw) {
         const blob=await fetch(photo.src).then(r=>r.blob());photo.path=await Cloud.upload(blob);delete photo.src;
       } else if(!photo.path) throw Error('备份照片缺少图像文件。');
     }
-    for(const key of ['logs','wishes','photos']) for(const row of source[key]) if(!next[key].some(x=>x.id===row.id))next[key].push(row);
+    for(const key of ['wishes','photos']) for(const row of source[key]) if(!next[key].some(x=>x.id===row.id))next[key].push(row);
+    const own=currentRole+'Text',other=currentRole==='male'?'femaleText':'maleText';
+    for(const row of source.logs) {
+      const existing=next.logs.find(x=>x.id===row.id);
+      if(existing) {if(!existing[own])existing[own]=row[own];}
+      else next.logs.push({...row,[other]:''});
+    }
     if(payload?.settings) next.settings=source.settings;
     if(payload?.mood) next.mood=source.mood;
   } finally{busy=false;}
